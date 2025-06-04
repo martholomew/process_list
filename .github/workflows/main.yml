@@ -21,25 +21,40 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install MinGW-w64
+      # Install MinGW-w64 for x86_64 and aarch64
       - name: Install MinGW-w64
         run: |
           sudo apt-get update
           sudo apt-get install -y mingw-w64
+          sudo apt-get install -y g++-aarch64-linux-gnu
 
-      # Build the executable with MinGW
-      - name: Build process_list.exe
+      # Build the executable for x86_64 with MinGW
+      - name: Build process_list_x86_64.exe
         run: |
-          x86_64-w64-mingw32-gcc -o process_list.exe process_list.c -lpsapi
+          x86_64-w64-mingw32-gcc -o process_list_x86_64.exe process_list.c -lpsapi
         shell: bash
 
-      # Upload the built executable as an artifact
-      - name: Upload Artifact
+      # Build the executable for aarch64 with MinGW
+      - name: Build process_list_aarch64.exe
+        run: |
+          aarch64-w64-mingw32-gcc -o process_list_aarch64.exe process_list.c -lpsapi
+        shell: bash
+
+      # Upload the x86_64 executable as an artifact
+      - name: Upload x86_64 Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: process_list.exe
-          path: process_list.exe
+          name: process_list_x86_64.exe
+          path: process_list_x86_64.exe
 
+      # Upload the aarch64 executable as an artifact
+      - name: Upload aarch64 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: process_list_aarch64.exe
+          path: process_list_aarch64.exe
+
+      # Create Release
       - name: Create Release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         id: create_release
@@ -52,13 +67,26 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
+      # Upload x86_64 Release Asset
+      - name: Upload x86_64 Release Asset
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./process_list.exe
-          asset_name: process_list.exe
+          asset_path: ./process_list_x86_64.exe
+          asset_name: process_list_x86_64.exe
+          asset_content_type: application/octet-stream
+
+      # Upload aarch64 Release Asset
+      - name: Upload aarch64 Release Asset
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./process_list_aarch64.exe
+          asset_name: process_list_aarch64.exe
           asset_content_type: application/octet-stream
